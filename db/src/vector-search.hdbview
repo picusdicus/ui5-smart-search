@@ -1,0 +1,78 @@
+-- ============================================================
+-- CV_CUSTOMERS_SEARCH
+-- Exposes Customers with REAL_VECTOR(1536) embedding column.
+-- Usage: SELECT *, COSINE_SIMILARITY(EMBEDDING, TO_REAL_VECTOR(?)) AS SCORE
+--        FROM CV_CUSTOMERS_SEARCH ORDER BY SCORE DESC LIMIT 10
+-- ============================================================
+VIEW "CV_CUSTOMERS_SEARCH" AS
+SELECT
+  "ID",
+  "NAME",
+  "EMAIL",
+  "PHONE",
+  "ADDRESS",
+  "COUNTRY",
+  "CREATEDAT",
+  "CREATEDBY",
+  "MODIFIEDAT",
+  "MODIFIEDBY",
+  "EMBEDDING"
+FROM "smart_search_Customers";
+
+-- ============================================================
+-- CV_PRODUCTS_SEARCH
+-- ============================================================
+VIEW "CV_PRODUCTS_SEARCH" AS
+SELECT
+  "ID",
+  "NAME",
+  "DESCRIPTION",
+  "CATEGORY",
+  "PRICE",
+  "CURRENCY",
+  "STOCK",
+  "CREATEDAT",
+  "CREATEDBY",
+  "MODIFIEDAT",
+  "MODIFIEDBY",
+  "EMBEDDING"
+FROM "smart_search_Products";
+
+-- ============================================================
+-- CV_SALESORDERS_SEARCH
+-- ============================================================
+VIEW "CV_SALESORDERS_SEARCH" AS
+SELECT
+  "ID",
+  "ORDERDATE",
+  "STATUS",
+  "CUSTOMER_ID",
+  "TOTALAMOUNT",
+  "CURRENCY",
+  "NOTES",
+  "CREATEDAT",
+  "CREATEDBY",
+  "MODIFIEDAT",
+  "MODIFIEDBY",
+  "EMBEDDING"
+FROM "smart_search_SalesOrders";
+
+-- ============================================================
+-- CV_INVOICES_SEARCH
+-- ============================================================
+VIEW "CV_INVOICES_SEARCH" AS
+SELECT
+  "ID",
+  "INVOICEDATE",
+  "DUEDATE",
+  "STATUS",
+  "SALESORDER_ID",
+  "AMOUNT",
+  "CURRENCY",
+  "NOTES",
+  "CREATEDAT",
+  "CREATEDBY",
+  "MODIFIEDAT",
+  "MODIFIEDBY",
+  "EMBEDDING"
+FROM "smart_search_Invoices";

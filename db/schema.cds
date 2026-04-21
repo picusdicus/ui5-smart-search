@@ -8,7 +8,9 @@ entity Customers : cuid, managed {
     phone       : String(50);
     address     : String(500);
     country     : String(100);
-    embedding   : LargeBinary;
+    embedding   : LargeBinary
+        @Core.MediaType          : 'application/octet-stream'
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(1536)
 }
 
 entity Products : cuid, managed {
@@ -18,7 +20,9 @@ entity Products : cuid, managed {
     price       : Decimal(15, 2);
     currency    : String(3);
     stock       : Integer;
-    embedding   : LargeBinary;
+    embedding   : LargeBinary
+        @Core.MediaType          : 'application/octet-stream'
+        @cds.persistence.exists  : false;
 }
 
 entity SalesOrders : cuid, managed {
@@ -28,7 +32,9 @@ entity SalesOrders : cuid, managed {
     totalAmount : Decimal(15, 2);
     currency    : String(3);
     notes       : String(1000);
-    embedding   : LargeBinary;
+    embedding   : LargeBinary
+        @Core.MediaType          : 'application/octet-stream'
+        @cds.persistence.exists  : false;
 }
 
 entity Invoices : cuid, managed {
@@ -39,5 +45,7 @@ entity Invoices : cuid, managed {
     amount      : Decimal(15, 2);
     currency    : String(3);
     notes       : String(1000);
-    embedding   : LargeBinary;
+    embedding   : LargeBinary
+        @Core.MediaType          : 'application/octet-stream'
+        @cds.persistence.exists  : false;
 }

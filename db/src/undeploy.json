@@ -1,0 +1,12 @@
+[
+  "src/gen/**/*.hdbview",
+  "src/gen/**/*.hdbindex",
+  "src/gen/**/*.hdbconstraint",
+  "src/gen/**/*_drafts.hdbtable",
+  "src/gen/**/*.hdbcalculationview",
+  "src/vector-search.hdbview",
+  "src/seed-data/customers.csv",
+  "src/seed-data/products.csv",
+  "src/seed-data/salesorders.csv",
+  "src/seed-data/invoices.csv"
+]
