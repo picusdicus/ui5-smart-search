@@ -10,7 +10,7 @@ entity Customers : cuid, managed {
     country     : String(100);
     embedding   : LargeBinary
         @Core.MediaType          : 'application/octet-stream'
-        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(1536)
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }
 
 entity Products : cuid, managed {
@@ -22,7 +22,7 @@ entity Products : cuid, managed {
     stock       : Integer;
     embedding   : LargeBinary
         @Core.MediaType          : 'application/octet-stream'
-        @cds.persistence.exists  : false;
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }
 
 entity SalesOrders : cuid, managed {
@@ -34,7 +34,7 @@ entity SalesOrders : cuid, managed {
     notes       : String(1000);
     embedding   : LargeBinary
         @Core.MediaType          : 'application/octet-stream'
-        @cds.persistence.exists  : false;
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }
 
 entity Invoices : cuid, managed {
@@ -47,5 +47,5 @@ entity Invoices : cuid, managed {
     notes       : String(1000);
     embedding   : LargeBinary
         @Core.MediaType          : 'application/octet-stream'
-        @cds.persistence.exists  : false;
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }

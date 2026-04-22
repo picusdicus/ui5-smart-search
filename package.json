@@ -9,8 +9,8 @@
     "@sap/cds": "^8",
     "express": "^4",
     "@cap-js/hana": "^1",
-    "@anthropic-ai/sdk": "^0.39.0",
-    "openai": "^4",
+    "@sap/hana-client": "^2",
+    "hdb": "^0.19",
     "dotenv": "^16"
   },
   "devDependencies": {

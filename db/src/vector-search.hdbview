@@ -1,8 +1,10 @@
+-- Embedding dimensions: 768 (nomic-embed-text via Ollama)
 -- ============================================================
 -- CV_CUSTOMERS_SEARCH
--- Exposes Customers with REAL_VECTOR(1536) embedding column.
+-- Exposes Customers with REAL_VECTOR(768) embedding column.
 -- Usage: SELECT *, COSINE_SIMILARITY(EMBEDDING, TO_REAL_VECTOR(?)) AS SCORE
 --        FROM CV_CUSTOMERS_SEARCH ORDER BY SCORE DESC LIMIT 10
+--        (? = JSON array of 768 floats produced by nomic-embed-text)
 -- ============================================================
 VIEW "CV_CUSTOMERS_SEARCH" AS
 SELECT
