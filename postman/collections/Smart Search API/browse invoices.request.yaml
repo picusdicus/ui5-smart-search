@@ -1,0 +1,5 @@
+$kind: http-request
+name: Browse Invoices
+method: GET
+url: '{{baseUrl}}/search/Invoices?$top=5&$filter=status eq ''Overdue'''
+order: 5000

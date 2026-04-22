@@ -1,0 +1,6 @@
+$kind: collection
+name: Smart Search API
+variables:
+  - key: baseUrl
+    value: 'http://localhost:4004'
+    description: Base URL for the local CAP service

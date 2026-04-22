@@ -1,0 +1,5 @@
+$kind: http-request
+name: Browse Sales Orders
+method: GET
+url: '{{baseUrl}}/search/SalesOrders?$top=5'
+order: 4000

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'searchAI products in stock'
+method: POST
+url: '{{baseUrl}}/search/searchAI'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "safety products in stock"
+    }

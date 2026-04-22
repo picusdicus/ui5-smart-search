@@ -1,0 +1,5 @@
+$kind: http-request
+name: Service Metadata
+method: GET
+url: '{{baseUrl}}/search/$metadata'
+order: 1000

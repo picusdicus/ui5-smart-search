@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'searchAI customers in Germany'
+method: POST
+url: '{{baseUrl}}/search/searchAI'
+order: 7000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "customers in Germany"
+    }

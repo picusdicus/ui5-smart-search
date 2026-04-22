@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'searchAI recent sales orders'
+method: POST
+url: '{{baseUrl}}/search/searchAI'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "recent sales orders on hold"
+    }

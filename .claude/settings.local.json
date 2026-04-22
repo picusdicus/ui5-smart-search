@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cds init *)"
+      "Bash(cds init *)",
+      "Bash(curl -s -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"customers in Germany\"}')",
+      "Bash(curl -s --max-time 5 'http://localhost:4004/search/$metadata' -o /dev/null -w '%{http_code}')",
+      "Bash(curl -s -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"safety products in stock\"}')",
+      "Bash(curl -s --max-time 30 -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"safety products in stock\"}')",
+      "Bash(curl -s --max-time 30 -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"recent sales orders on hold\"}')",
+      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"recent sales orders on hold\"}')"
     ]
   }
 }

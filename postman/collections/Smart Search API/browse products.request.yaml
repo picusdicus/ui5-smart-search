@@ -1,0 +1,5 @@
+$kind: http-request
+name: Browse Products
+method: GET
+url: '{{baseUrl}}/search/Products?$top=5'
+order: 3000

@@ -1,0 +1,5 @@
+$kind: http-request
+name: Browse Customers
+method: GET
+url: '{{baseUrl}}/search/Customers?$top=5'
+order: 2000

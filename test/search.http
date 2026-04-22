@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:4004
+
+### Search: overdue invoices
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "overdue invoices"
+}
+
+### Search: customers in Germany
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "customers in Germany"
+}
+
+### Search: products in stock
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "safety products in stock"
+}
+
+### Search: recent sales orders
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "recent sales orders on hold"
+}
+
+### Health check: service metadata
+GET {{baseUrl}}/search/$metadata
+
+### Browse customers (read-only entity)
+GET {{baseUrl}}/search/Customers?$top=5
+
+### Browse invoices (read-only entity)
+GET {{baseUrl}}/search/Invoices?$top=5&$filter=status eq 'Overdue'
