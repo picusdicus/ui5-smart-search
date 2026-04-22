@@ -1,0 +1,82 @@
+<mvc:View
+    controllerName="ui5.smartsearch.controller.Search"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    displayBlock="true">
+
+    <App id="app">
+    <Page title="{i18n>appTitle}" showHeader="true">
+        <content>
+            <VBox
+                alignItems="Center"
+                class="sapUiMediumMarginTop sapUiMediumMarginBottom">
+
+                <SearchField
+                    id="searchField"
+                    placeholder="{i18n>searchPlaceholder}"
+                    width="60%"
+                    search=".onSearch"
+                    liveChange=".onLiveChange"
+                    class="sapUiLargeMarginBottom"/>
+
+                <BusyIndicator
+                    id="busyIndicator"
+                    visible="false"
+                    size="2rem"
+                    class="sapUiSmallMarginBottom"/>
+
+                <MessageStrip
+                    id="errorStrip"
+                    visible="false"
+                    type="Error"
+                    showCloseButton="true"
+                    close=".onErrorStripClose"
+                    class="sapUiSmallMarginBottom"/>
+
+            </VBox>
+
+            <Panel
+                id="answerPanel"
+                visible="false"
+                expandable="false"
+                class="sapUiMediumMarginBeginEnd sapUiSmallMarginBottom">
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="{i18n>answerPanelTitle}" level="H3"/>
+                    </Toolbar>
+                </headerToolbar>
+                <content>
+                    <Text
+                        id="answerText"
+                        wrapping="true"
+                        class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginTopBottom"/>
+                </content>
+            </Panel>
+
+            <Panel
+                id="resultsPanel"
+                visible="false"
+                expandable="false"
+                class="sapUiMediumMarginBeginEnd sapUiSmallMarginBottom">
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="{i18n>resultsPanelTitle}" level="H3"/>
+                        <ToolbarSpacer/>
+                        <Text id="resultsCount"/>
+                    </Toolbar>
+                </headerToolbar>
+                <content>
+                    <Table
+                        id="resultsTable"
+                        noDataText="{i18n>noResults}">
+                        <columns/>
+                        <items/>
+                    </Table>
+                </content>
+            </Panel>
+
+        </content>
+    </Page>
+    </App>
+
+</mvc:View>

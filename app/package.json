@@ -1,0 +1,11 @@
+{
+  "name": "ui5.smartsearch",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@ui5/cli": "^3"
+  },
+  "scripts": {
+    "start": "ui5 serve --open"
+  }
+}

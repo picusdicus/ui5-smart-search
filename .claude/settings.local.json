@@ -7,7 +7,17 @@
       "Bash(curl -s -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"safety products in stock\"}')",
       "Bash(curl -s --max-time 30 -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"safety products in stock\"}')",
       "Bash(curl -s --max-time 30 -X POST http://localhost:4004/search/searchAI -H 'Content-Type: application/json' -d '{\"query\": \"recent sales orders on hold\"}')",
-      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"recent sales orders on hold\"}')"
+      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"recent sales orders on hold\"}')",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_network_requests",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:4004/webapp/index.html\" -Method GET)",
+      "mcp__playwright__browser_type",
+      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"overdue invoices\"}')"
     ]
   }
 }
