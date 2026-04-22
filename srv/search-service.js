@@ -59,8 +59,8 @@ module.exports = class SearchService extends cds.ApplicationService {
             const rows = await vectorSearch(entityName, queryVector);
             console.log(`[search-service] Vector search returned ${rows.length} rows`);
 
-            // 4. Ask Ollama llama3.2 to synthesise an answer from the retrieved rows
-            const { answer } = await askLlama(query, rows, entityName);
+            // 4. Ask Ollama llama3.2 to synthesise an answer from the top-3 rows only
+            const { answer } = await askLlama(query, rows.slice(0, 3), entityName);
             console.log(`[search-service] Ollama answered for entity: ${entityName}`);
 
             // 5. Map raw HANA rows to the typed results array expected by the CDS action

@@ -2,22 +2,25 @@
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 
-/**
- * Asks the local Ollama llama3.2 model a question grounded in the provided
- * SAP entity context rows.
- *
- * @param {string}        query      - The user's natural-language question.
- * @param {Array<object>} contextRows - Top-k rows from HANA vector search.
- * @param {string}        entityType - Entity label used in the prompt (e.g. 'Customers').
- * @returns {Promise<{ answer: string }>} The model's answer.
- * @throws {Error} If Ollama is not reachable or returns an unexpected response.
- */
+// Only send the fields that matter for answering questions — keeps the prompt small
+const RELEVANT_FIELDS = {
+    Customers:   ['ID', 'NAME', 'EMAIL', 'PHONE', 'COUNTRY'],
+    Products:    ['ID', 'NAME', 'CATEGORY', 'PRICE', 'CURRENCY', 'STOCK', 'DESCRIPTION'],
+    SalesOrders: ['ID', 'ORDERDATE', 'STATUS', 'TOTALAMOUNT', 'CURRENCY', 'NOTES'],
+    Invoices:    ['ID', 'INVOICEDATE', 'DUEDATE', 'STATUS', 'AMOUNT', 'CURRENCY', 'NOTES'],
+};
+
 async function askLlama(query, contextRows, entityType) {
-    // Format rows, skipping binary embedding fields
+    const allowedFields = RELEVANT_FIELDS[entityType] || null;
+
     const formattedContext = contextRows.map((row) => {
         const lines = Object.entries(row)
-            .filter(([key]) => key !== 'EMBEDDING' && key !== 'embedding')
-            .map(([key, value]) => `  - ${key}: ${value}`)
+            .filter(([key]) => {
+                if (key === 'EMBEDDING' || key === 'embedding' || key === 'SCORE') return false;
+                if (allowedFields) return allowedFields.includes(key.toUpperCase());
+                return true;
+            })
+            .map(([key, value]) => `  ${key}: ${value}`)
             .join('\n');
         return `[${entityType}]\n${lines}`;
     }).join('\n\n');
@@ -39,13 +42,9 @@ async function askLlama(query, contextRows, entityType) {
                         role: 'system',
                         content:
                             'You are an SAP data assistant. Answer questions about business data ' +
-                            'concisely. If the data doesn\'t contain the answer, say so clearly. ' +
-                            'Format numbers as currency where appropriate.',
+                            'concisely in 1-3 sentences. Format numbers as currency where appropriate.',
                     },
-                    {
-                        role: 'user',
-                        content: userContent,
-                    },
+                    { role: 'user', content: userContent },
                 ],
             }),
         });
@@ -58,10 +57,7 @@ async function askLlama(query, contextRows, entityType) {
     }
 
     const json = await response.json();
-    const answer = json.message && json.message.content
-        ? json.message.content
-        : '(No answer returned by model)';
-
+    const answer = json.message?.content || '(No answer returned by model)';
     return { answer };
 }
 
