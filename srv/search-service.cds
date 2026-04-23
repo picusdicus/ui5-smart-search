@@ -8,13 +8,9 @@ service SearchService @(path: '/search') {
     @readonly entity Invoices   as projection on db.Invoices   excluding { embedding };
 
     action searchAI(query: String) returns {
-        answer  : String;
-        results : array of {
-            entity  : String;
-            id      : UUID;
-            title   : String;
-            excerpt : String;
-            score   : Double;
-        };
+        answer        : String;
+        results       : array of String;
+        entityTypes   : array of String;
+        isMultiEntity : Boolean;
     };
 }

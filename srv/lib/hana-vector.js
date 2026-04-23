@@ -71,4 +71,35 @@ async function vectorSearch(entityName, queryVector, topK = 10) {
     }
 }
 
-module.exports = { vectorSearch };
+/**
+ * Runs vectorSearch() for multiple entities simultaneously.
+ * Applies entity weight to scores. Partial failures are logged and skipped.
+ *
+ * @param {Array<{name: string, weight: number}>} entities      - Entities to search.
+ * @param {Float32Array}                          queryVector   - The query embedding.
+ * @param {number}                                [topKPerEntity=5] - Results per entity.
+ * @returns {Promise<Map<string, Array>>} Map of entity name → weighted rows.
+ */
+async function parallelVectorSearch(entities, queryVector, topKPerEntity = 5) {
+    const results = new Map();
+
+    const settled = await Promise.allSettled(
+        entities.map(async ({ name, weight }) => {
+            const rows = await vectorSearch(name, queryVector, topKPerEntity);
+            const weighted = rows.map(row => ({ ...row, SCORE: (row.SCORE || 0) * weight }));
+            return { name, rows: weighted };
+        })
+    );
+
+    for (const outcome of settled) {
+        if (outcome.status === 'fulfilled') {
+            results.set(outcome.value.name, outcome.value.rows);
+        } else {
+            console.error('[hana-vector] parallelVectorSearch partial failure:', outcome.reason?.message);
+        }
+    }
+
+    return results;
+}
+
+module.exports = { vectorSearch, parallelVectorSearch };

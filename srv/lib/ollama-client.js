@@ -61,4 +61,56 @@ async function askLlama(query, contextRows, entityType) {
     return { answer };
 }
 
-module.exports = { askLlama };
+/**
+ * Asks Llama to analyse cross-entity business data with a richer system prompt.
+ *
+ * @param {string}   query       - The user's natural language question.
+ * @param {string}   contextBlock - Structured text from buildContextBlock().
+ * @param {string[]} entityTypes - Names of the entities that were searched.
+ * @returns {Promise<{ answer: string }>}
+ */
+async function askLlamaMultiEntity(query, contextBlock, entityTypes) {
+    const entityList = entityTypes.join(', ');
+    const userContent =
+        `The following SAP business records were retrieved from: ${entityList}.\n\n` +
+        `${contextBlock}\n\n` +
+        `Answer this question thoroughly: ${query}`;
+
+    let response;
+    try {
+        response = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'llama3.2',
+                stream: false,
+                options: { num_predict: 2048 },
+                messages: [
+                    {
+                        role: 'system',
+                        content:
+                            'You are an SAP business data analyst with expertise in ' +
+                            'reading related business records across multiple tables. ' +
+                            'Analyze the provided data holistically. ' +
+                            'Identify relationships between records. ' +
+                            'Highlight patterns, totals, and anomalies. ' +
+                            'Be concise but thorough. Format numbers as currency.',
+                    },
+                    { role: 'user', content: userContent },
+                ],
+            }),
+        });
+    } catch (err) {
+        throw new Error(`Ollama not reachable at ${OLLAMA_URL}. Is it running?`);
+    }
+
+    if (!response.ok) {
+        throw new Error(`Ollama chat request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const json = await response.json();
+    const answer = json.message?.content || '(No answer returned by model)';
+    return { answer };
+}
+
+module.exports = { askLlama, askLlamaMultiEntity };

@@ -86,7 +86,15 @@ sap.ui.define([
                 return;
             }
 
-            var aKeys = Object.keys(aResults[0]);
+            // Results may arrive as JSON strings (multi-entity path) or plain objects
+            var SKIP_KEYS = { EMBEDDING: true, embedding: true, entityType: true };
+            var aParsed = aResults.map(function (r) {
+                return typeof r === "string" ? JSON.parse(r) : r;
+            });
+
+            var aKeys = Object.keys(aParsed[0]).filter(function (k) {
+                return !SKIP_KEYS[k];
+            });
 
             aKeys.forEach(function (sKey) {
                 oTable.addColumn(new Column({
@@ -94,10 +102,13 @@ sap.ui.define([
                 }));
             });
 
-            aResults.forEach(function (oRecord) {
+            aParsed.forEach(function (oRecord) {
                 var oCells = aKeys.map(function (sKey) {
                     var vVal = oRecord[sKey];
-                    return new Text({ text: vVal !== null && vVal !== undefined ? String(vVal) : "" });
+                    var sText = (vVal !== null && vVal !== undefined) ? String(vVal) : "";
+                    // Escape UI5 binding syntax to prevent "{...}" from being parsed as bindings
+                    sText = sText.replace(/\{/g, "\\{");
+                    return new Text({ text: sText });
                 });
                 oTable.addItem(new ColumnListItem({ cells: oCells }));
             });
