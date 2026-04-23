@@ -126,7 +126,7 @@ const SEED_DIR = path.join(__dirname, '../../db/src/seed-data');
 const ENTITIES = [
     {
         name:   'Customers',
-        file:   'customers.csv',
+        file:   'smart.search.Customers.csv',
         table:  'smart_search_Customers',
         textFn: (r) => `${r.name} customer from ${r.country}. Email: ${r.email}. Address: ${r.address}`,
         upsertCols: (r, buf) => ({
@@ -136,7 +136,7 @@ const ENTITIES = [
     },
     {
         name:   'Products',
-        file:   'products.csv',
+        file:   'smart.search.Products.csv',
         table:  'smart_search_Products',
         textFn: (r) => `${r.name}. Category: ${r.category}. Description: ${r.description}. Price: ${r.price} ${r.currency}. Stock: ${r.stock} units`,
         upsertCols: (r, buf) => ({
@@ -146,7 +146,7 @@ const ENTITIES = [
     },
     {
         name:   'SalesOrders',
-        file:   'salesorders.csv',
+        file:   'smart.search.SalesOrders.csv',
         table:  'smart_search_SalesOrders',
         textFn: (r) => `Sales order status ${r.status} dated ${r.orderDate}. Total amount: ${r.totalAmount} ${r.currency}. Notes: ${r.notes}`,
         upsertCols: (r, buf) => ({
@@ -155,8 +155,18 @@ const ENTITIES = [
         }),
     },
     {
+        name:   'SalesOrderItems',
+        file:   'smart.search.SalesOrderItems.csv',
+        table:  'smart_search_SalesOrderItems',
+        textFn: (r) => `quantity ${r.quantity} units at ${r.unitPrice} ${r.currency}`,
+        upsertCols: (r, buf) => ({
+            cols:   ['"ID"', '"salesOrder_ID"', '"product_ID"', '"quantity"', '"unitPrice"', '"currency"', '"EMBEDDING"'],
+            params: [r.ID, r.salesOrder_ID, r.product_ID, parseInt(r.quantity)||0, parseFloat(r.unitPrice)||0, r.currency, buf],
+        }),
+    },
+    {
         name:   'Invoices',
-        file:   'invoices.csv',
+        file:   'smart.search.Invoices.csv',
         table:  'smart_search_Invoices',
         textFn: (r) => `${r.status} invoice of ${r.amount} ${r.currency}. Due date: ${r.dueDate}. Invoice date: ${r.invoiceDate}. Notes: ${r.notes}`,
         upsertCols: (r, buf) => ({

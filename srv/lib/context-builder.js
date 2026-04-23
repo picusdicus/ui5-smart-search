@@ -3,10 +3,11 @@
 const { getConnection } = require('./hana-vector');
 
 const KEYWORD_MAP = {
-    Invoices:    ['invoice', 'invoices', 'bill', 'payment', 'overdue', 'paid', 'unpaid', 'due', 'amount'],
-    Customers:   ['customer', 'customers', 'client', 'buyer', 'company', 'account', 'german', 'spain', 'country'],
-    Products:    ['product', 'products', 'material', 'stock', 'inventory', 'item', 'category', 'price'],
-    SalesOrders: ['order', 'orders', 'sales', 'delivery', 'confirmed', 'shipped', 'cancelled'],
+    Invoices:        ['invoice', 'invoices', 'bill', 'payment', 'overdue', 'paid', 'unpaid', 'due', 'amount'],
+    Customers:       ['customer', 'customers', 'client', 'buyer', 'company', 'account', 'german', 'spain', 'country'],
+    Products:        ['product', 'products', 'material', 'stock', 'inventory', 'item', 'category', 'price'],
+    SalesOrders:     ['order', 'orders', 'sales', 'delivery', 'confirmed', 'shipped', 'cancelled'],
+    SalesOrderItems: ['item', 'items', 'line', 'lines', 'quantity', 'revenue', 'selling', 'purchases'],
 };
 
 /**
@@ -132,6 +133,49 @@ async function enrichWithRelationships(mergedRows, db) {
                 const info = await fetchCustomerInfo(row['customer_ID']);
                 enriched.push({ ...row, relatedData: info });
 
+            } else if (row.entityType === 'SalesOrderItems' && row['salesOrder_ID']) {
+                // SalesOrderItem → SalesOrder → Customer
+                const soQuery  = `SELECT "customer_ID" FROM "smart_search_SalesOrders" WHERE "ID" = ?`;
+                const soParams = [row['salesOrder_ID']];
+                console.log('[enrich] Query:', soQuery);
+                console.log('[enrich] Params:', soParams);
+                let so;
+                try {
+                    const soRows = await execSql(soQuery, soParams);
+                    so = soRows?.[0];
+                    console.log('[enrich] Result:', JSON.stringify(so));
+                } catch (err) {
+                    console.log('[enrich] Error:', err?.message);
+                    throw err;
+                }
+                const custId = so?.['customer_ID'];
+                let customerName = 'Unknown';
+                let customerCountry = '';
+                if (custId) {
+                    const custQuery  = `SELECT "name", "country" FROM "smart_search_Customers" WHERE "ID" = ?`;
+                    const custParams = [custId];
+                    console.log('[enrich] Query:', custQuery);
+                    console.log('[enrich] Params:', custParams);
+                    try {
+                        const custRows = await execSql(custQuery, custParams);
+                        const cust = custRows?.[0];
+                        console.log('[enrich] Result:', JSON.stringify(cust));
+                        customerName    = cust?.name    || 'Unknown';
+                        customerCountry = cust?.country || '';
+                    } catch (err) {
+                        console.log('[enrich] Error:', err?.message);
+                    }
+                }
+                enriched.push({
+                    ...row,
+                    relatedData: {
+                        customerName,
+                        customerCountry,
+                        productName:     row.productName     || null,
+                        productCategory: row.productCategory || null,
+                    },
+                });
+
             } else {
                 enriched.push({ ...row, relatedData: null });
             }
@@ -186,6 +230,13 @@ function buildContextBlock(enrichedRows) {
             if (entityType === 'Products') {
                 const cur = row.currency || '';
                 return `- ${row.name || 'N/A'} | ${row.category || 'N/A'} | ${row.price || 'N/A'} ${cur} | Stock: ${row.stock || 'N/A'}`;
+            }
+            if (entityType === 'SalesOrderItems') {
+                const cn  = row.relatedData?.customerName    || 'Unknown';
+                const pn  = row.productName                  || row.relatedData?.productName     || 'N/A';
+                const pc  = row.productCategory              || row.relatedData?.productCategory  || 'N/A';
+                const cur = row.currency || '';
+                return `- ${pn} | ${pc} | Qty: ${row.quantity || 'N/A'} | ${row.unitPrice || 'N/A'} ${cur} | Customer: ${cn}`;
             }
             return `- ID: ${row.ID}`;
         });

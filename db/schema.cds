@@ -49,3 +49,14 @@ entity Invoices : cuid, managed {
         @Core.MediaType          : 'application/octet-stream'
         @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }
+
+entity SalesOrderItems : cuid, managed {
+    salesOrder  : Association to SalesOrders;
+    product     : Association to Products;
+    quantity    : Integer;
+    unitPrice   : Decimal(15, 2);
+    currency    : String(3);
+    embedding   : LargeBinary
+        @Core.MediaType          : 'application/octet-stream'
+        @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
+}

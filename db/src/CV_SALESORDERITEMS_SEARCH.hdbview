@@ -1,0 +1,23 @@
+-- Embedding dimensions: 768 (nomic-embed-text via Ollama)
+-- ============================================================
+-- CV_SALESORDERITEMS_SEARCH
+-- Exposes SalesOrderItems joined with Products for semantic
+-- search. COSINE_SIMILARITY is applied at query time by the
+-- caller; this view exposes the raw EMBEDDING column.
+-- Usage: SELECT *, COSINE_SIMILARITY(SOI.EMBEDDING, TO_REAL_VECTOR(?)) AS SCORE
+--        FROM CV_SALESORDERITEMS_SEARCH ORDER BY SCORE DESC LIMIT 10
+-- ============================================================
+VIEW "CV_SALESORDERITEMS_SEARCH" AS
+SELECT
+  SOI."ID",
+  SOI."salesOrder_ID",
+  SOI."product_ID",
+  SOI."quantity",
+  SOI."unitPrice",
+  SOI."currency",
+  P."name"     AS "productName",
+  P."category" AS "productCategory",
+  SOI."EMBEDDING"
+FROM "smart_search_SalesOrderItems" SOI
+JOIN "smart_search_Products" P ON SOI."product_ID" = P."ID"
+WHERE SOI."EMBEDDING" IS NOT NULL;

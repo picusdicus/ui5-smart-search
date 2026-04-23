@@ -17,7 +17,12 @@
       "mcp__playwright__browser_network_requests",
       "PowerShell(Invoke-WebRequest -Uri \"http://localhost:4004/webapp/index.html\" -Method GET)",
       "mcp__playwright__browser_type",
-      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"overdue invoices\"}')"
+      "PowerShell(Invoke-RestMethod -Method POST -Uri \"http://localhost:4004/search/searchAI\" -ContentType \"application/json\" -Body '{\"query\": \"overdue invoices\"}')",
+      "Bash(node node_modules/@sap/hdi-deploy/deploy.js --use-hdb)",
+      "Bash(npm install *)",
+      "Bash(npx cds *)",
+      "Bash(node srv/lib/create-salesorderitems-table.js)",
+      "Bash(node srv/lib/seed-embeddings.js)"
     ]
   }
 }

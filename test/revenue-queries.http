@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:4004
+
+### Revenue by product category
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "monthly revenue by product category"
+}
+
+### Best selling products
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "which products are selling the most"
+}
+
+### Top customers by purchase amount
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{
+  "query": "top customers by total purchase amount"
+}

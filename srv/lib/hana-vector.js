@@ -4,10 +4,28 @@ const hana = require('@sap/hana-client');
 
 /** @type {Record<string, string>} Maps CAP entity names to HANA table names. */
 const ENTITY_TABLE_MAP = {
-    'Customers':   'smart_search_Customers',
-    'Products':    'smart_search_Products',
-    'SalesOrders': 'smart_search_SalesOrders',
-    'Invoices':    'smart_search_Invoices',
+    'Customers':      'smart_search_Customers',
+    'Products':       'smart_search_Products',
+    'SalesOrders':    'smart_search_SalesOrders',
+    'Invoices':       'smart_search_Invoices',
+    'SalesOrderItems': 'smart_search_SalesOrderItems',
+};
+
+/**
+ * Custom SQL for entities that require JOINs or non-standard projections.
+ * Each value is a function (topK) → SQL string. The binding parameter ? is
+ * the TO_REAL_VECTOR() argument and must remain the only bind param.
+ */
+const SPECIAL_SQL = {
+    SalesOrderItems: (topK) =>
+        `SELECT TOP ${topK} ` +
+        `SOI."ID", SOI."salesOrder_ID", SOI."product_ID", ` +
+        `SOI."quantity", SOI."unitPrice", SOI."currency", ` +
+        `P."name" AS "productName", P."category" AS "productCategory", ` +
+        `COSINE_SIMILARITY(SOI."EMBEDDING", TO_REAL_VECTOR(?)) AS "SCORE" ` +
+        `FROM "smart_search_SalesOrderItems" SOI ` +
+        `JOIN "smart_search_Products" P ON SOI."product_ID" = P."ID" ` +
+        `WHERE SOI."EMBEDDING" IS NOT NULL ORDER BY "SCORE" DESC`,
 };
 
 /** Connection parameters read once at module load from environment variables. */
@@ -91,9 +109,10 @@ async function vectorSearchWithConn(conn, entityName, queryVector, topK = 10) {
     }
 
     const queryVecStr = '[' + Array.from(queryVector).join(',') + ']';
-    const sql =
-        `SELECT TOP ${topK} *, COSINE_SIMILARITY("EMBEDDING", TO_REAL_VECTOR(?)) AS "SCORE" ` +
-        `FROM "${tableName}" WHERE "EMBEDDING" IS NOT NULL ORDER BY "SCORE" DESC`;
+    const sql = SPECIAL_SQL[entityName]
+        ? SPECIAL_SQL[entityName](topK)
+        : `SELECT TOP ${topK} *, COSINE_SIMILARITY("EMBEDDING", TO_REAL_VECTOR(?)) AS "SCORE" ` +
+          `FROM "${tableName}" WHERE "EMBEDDING" IS NOT NULL ORDER BY "SCORE" DESC`;
 
     return execOnConn(conn, sql, [queryVecStr]);
 }
