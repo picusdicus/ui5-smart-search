@@ -9,12 +9,13 @@
         <content>
             <VBox
                 alignItems="Center"
+                width="100%"
                 class="sapUiMediumMarginTop sapUiMediumMarginBottom">
 
                 <SearchField
                     id="searchField"
                     placeholder="{i18n>searchPlaceholder}"
-                    width="60%"
+                    width="100%"
                     search=".onSearch"
                     liveChange=".onLiveChange"
                     class="sapUiLargeMarginBottom"/>
