@@ -128,7 +128,7 @@ const ENTITIES = [
         name:   'Customers',
         file:   'customers.csv',
         table:  'smart_search_Customers',
-        textFn: (r) => `${r.name} ${r.email} ${r.address} ${r.country}`,
+        textFn: (r) => `${r.name} customer from ${r.country}. Email: ${r.email}. Address: ${r.address}`,
         upsertCols: (r, buf) => ({
             cols:   ['"ID"', '"name"', '"email"', '"phone"', '"address"', '"country"', '"EMBEDDING"'],
             params: [r.ID, r.name, r.email, r.phone, r.address, r.country, buf],
@@ -138,7 +138,7 @@ const ENTITIES = [
         name:   'Products',
         file:   'products.csv',
         table:  'smart_search_Products',
-        textFn: (r) => `${r.name} ${r.description} ${r.category}`,
+        textFn: (r) => `${r.name}. Category: ${r.category}. Description: ${r.description}. Price: ${r.price} ${r.currency}. Stock: ${r.stock} units`,
         upsertCols: (r, buf) => ({
             cols:   ['"ID"', '"name"', '"description"', '"category"', '"price"', '"currency"', '"stock"', '"EMBEDDING"'],
             params: [r.ID, r.name, r.description, r.category, parseFloat(r.price)||0, r.currency, parseInt(r.stock)||0, buf],
@@ -148,7 +148,7 @@ const ENTITIES = [
         name:   'SalesOrders',
         file:   'salesorders.csv',
         table:  'smart_search_SalesOrders',
-        textFn: (r) => `${r.status} ${r.notes} ${r.totalAmount} ${r.currency}`,
+        textFn: (r) => `Sales order status ${r.status} dated ${r.orderDate}. Total amount: ${r.totalAmount} ${r.currency}. Notes: ${r.notes}`,
         upsertCols: (r, buf) => ({
             cols:   ['"ID"', '"orderDate"', '"status"', '"customer_ID"', '"totalAmount"', '"currency"', '"notes"', '"EMBEDDING"'],
             params: [r.ID, r.orderDate, r.status, r.customer_ID, parseFloat(r.totalAmount)||0, r.currency, r.notes, buf],
@@ -158,7 +158,7 @@ const ENTITIES = [
         name:   'Invoices',
         file:   'invoices.csv',
         table:  'smart_search_Invoices',
-        textFn: (r) => `${r.status} ${r.notes} ${r.amount} ${r.currency}`,
+        textFn: (r) => `${r.status} invoice of ${r.amount} ${r.currency}. Due date: ${r.dueDate}. Invoice date: ${r.invoiceDate}. Notes: ${r.notes}`,
         upsertCols: (r, buf) => ({
             cols:   ['"ID"', '"invoiceDate"', '"dueDate"', '"status"', '"salesOrder_ID"', '"amount"', '"currency"', '"notes"', '"EMBEDDING"'],
             params: [r.ID, r.invoiceDate, r.dueDate, r.status, r.salesOrder_ID, parseFloat(r.amount)||0, r.currency, r.notes, buf],

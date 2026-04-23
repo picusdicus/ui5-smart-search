@@ -94,7 +94,11 @@ async function askLlamaMultiEntity(query, contextBlock, entityTypes) {
                             'Analyze the provided data holistically. ' +
                             'Identify relationships between records. ' +
                             'Highlight patterns, totals, and anomalies. ' +
-                            'Be concise but thorough. Format numbers as currency.',
+                            'Be concise but thorough. ' +
+                            'NEVER add amounts from different currencies together. ' +
+                            'Group totals BY currency when multiple currencies exist. ' +
+                            'Always show the currency code next to every amount. ' +
+                            'If a customer name is available, always use it instead of showing the raw ID.',
                     },
                     { role: 'user', content: userContent },
                 ],

@@ -1,6 +1,6 @@
 'use strict';
 
-const cds = require('@sap/cds');
+const { getConnection } = require('./hana-vector');
 
 const KEYWORD_MAP = {
     Invoices:    ['invoice', 'invoices', 'bill', 'payment', 'overdue', 'paid', 'unpaid', 'due', 'amount'],
@@ -38,27 +38,30 @@ function detectEntities(query) {
 /**
  * Merges per-entity result arrays into a single deduplicated, score-sorted array.
  * Each row receives an `entityType` field and EMBEDDING is stripped.
+ * Composite key (entityType-ID) is used; on duplicate the highest score wins.
  *
  * @param {Map<string, Array>} entityResults - Map of entity name → rows array.
  * @returns {Array}
  */
 function mergeResults(entityResults) {
-    const seen = new Set();
-    const flat = [];
+    // Map from composite key → best row seen so far
+    const best = new Map();
 
     for (const [entityType, rows] of entityResults) {
         for (const row of rows) {
-            const key = `${entityType}:${row.ID}`;
-            if (!seen.has(key)) {
-                seen.add(key);
+            const key = `${entityType}-${row.ID}`;
+            const score = row.SCORE || 0;
+            const existing = best.get(key);
+
+            if (!existing || score > (existing.SCORE || 0)) {
                 // Strip binary embedding to avoid JSON serialization issues
                 const { EMBEDDING, embedding, ...safeRow } = row;
-                flat.push({ ...safeRow, entityType });
+                best.set(key, { ...safeRow, entityType });
             }
         }
     }
 
-    return flat.sort((a, b) => (b.SCORE || 0) - (a.SCORE || 0));
+    return Array.from(best.values()).sort((a, b) => (b.SCORE || 0) - (a.SCORE || 0));
 }
 
 /**
@@ -70,38 +73,73 @@ function mergeResults(entityResults) {
  * @returns {Promise<Array>}
  */
 async function enrichWithRelationships(mergedRows, db) {
-    const { SELECT } = cds.ql;
+    const conn = await getConnection();
 
-    const enriched = await Promise.all(
-        mergedRows.map(async (row) => {
-            try {
-                if (row.entityType === 'Invoices' && row['salesOrder_ID']) {
-                    // Invoice → SalesOrder → Customer
-                    const [so] = await db.run(
-                        SELECT.from('smart.search.SalesOrders').columns('customer_ID').where({ ID: row['salesOrder_ID'] })
-                    );
-                    if (so && so['customer_ID']) {
-                        const [cust] = await db.run(
-                            SELECT.from('smart.search.Customers').columns('name').where({ ID: so['customer_ID'] })
-                        );
-                        return { ...row, relatedData: cust ? { customerName: cust.name } : null };
-                    }
+    function execSql(sql, params) {
+        return new Promise((resolve, reject) => {
+            conn.exec(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
+
+    async function fetchCustomerInfo(customerId) {
+        const query  = `SELECT "name", "country" FROM "smart_search_Customers" WHERE "ID" = ?`;
+        const params = [customerId];
+        console.log('[enrich] Query:', query);
+        console.log('[enrich] Params:', params);
+        try {
+            const rows = await execSql(query, params);
+            const result = rows?.[0];
+            console.log('[enrich] Result:', JSON.stringify(result));
+            return {
+                customerName:    result?.name    || 'Unknown',
+                customerCountry: result?.country || '',
+            };
+        } catch (err) {
+            console.log('[enrich] Error:', err?.message);
+            throw err;
+        }
+    }
+
+    // Sequential loop — a single HANA connection cannot handle concurrent queries
+    const enriched = [];
+    for (const row of mergedRows) {
+        try {
+            if (row.entityType === 'Invoices' && row['salesOrder_ID']) {
+                // Invoice → SalesOrder → Customer
+                const soQuery  = `SELECT "customer_ID" FROM "smart_search_SalesOrders" WHERE "ID" = ?`;
+                const soParams = [row['salesOrder_ID']];
+                console.log('[enrich] Query:', soQuery);
+                console.log('[enrich] Params:', soParams);
+                let so;
+                try {
+                    const soRows = await execSql(soQuery, soParams);
+                    so = soRows?.[0];
+                    console.log('[enrich] Result:', JSON.stringify(so));
+                } catch (err) {
+                    console.log('[enrich] Error:', err?.message);
+                    throw err;
                 }
+                const customerId = so?.['customer_ID'];
+                const info = customerId
+                    ? await fetchCustomerInfo(customerId)
+                    : { customerName: 'Unknown', customerCountry: '' };
+                enriched.push({ ...row, relatedData: info });
 
-                if (row.entityType === 'SalesOrders' && row['customer_ID']) {
-                    const [cust] = await db.run(
-                        SELECT.from('smart.search.Customers').columns('name').where({ ID: row['customer_ID'] })
-                    );
-                    return { ...row, relatedData: cust ? { customerName: cust.name } : null };
-                }
+            } else if (row.entityType === 'SalesOrders' && row['customer_ID']) {
+                const info = await fetchCustomerInfo(row['customer_ID']);
+                enriched.push({ ...row, relatedData: info });
 
-                return { ...row, relatedData: null };
-            } catch (err) {
-                console.warn(`[context-builder] Relationship fetch skipped for ${row.entityType} ${row.ID}:`, err.message);
-                return { ...row, relatedData: null };
+            } else {
+                enriched.push({ ...row, relatedData: null });
             }
-        })
-    );
+        } catch (err) {
+            console.log('[enrich] Error:', err?.message);
+            enriched.push({ ...row, relatedData: { customerName: 'Unknown', customerCountry: '' } });
+        }
+    }
 
     return enriched;
 }
@@ -126,23 +164,28 @@ function buildContextBlock(enrichedRows) {
     for (const [entityType, rows] of Object.entries(groups)) {
         const header = `=== ${entityType.toUpperCase()} (${rows.length} records) ===`;
         const lines = rows.map(row => {
-            const customerInfo = row.relatedData?.customerName
-                ? ` | Customer: ${row.relatedData.customerName}`
+            const customerName    = row.relatedData?.customerName    || '';
+            const customerCountry = row.relatedData?.customerCountry || '';
+            const customerSuffix  = customerName
+                ? ` | Customer: ${customerName}${customerCountry ? ` (${customerCountry})` : ''}`
                 : '';
 
             if (entityType === 'Invoices') {
                 const amt = row.amount !== undefined && row.amount !== null ? row.amount : 'N/A';
-                return `- ID: ${row.ID} | Amount: ${row.currency || ''}${amt} | Status: ${row.status || 'N/A'}${customerInfo}`;
+                const cur = row.currency || '';
+                return `- ID: ${row.ID} | ${row.status || 'N/A'} | ${amt} ${cur} | Due: ${row.dueDate || 'N/A'}${customerSuffix}`;
             }
             if (entityType === 'SalesOrders') {
                 const amt = row.totalAmount !== undefined && row.totalAmount !== null ? row.totalAmount : 'N/A';
-                return `- ID: ${row.ID} | Total: ${row.currency || ''}${amt} | Status: ${row.status || 'N/A'}${customerInfo}`;
+                const cur = row.currency || '';
+                return `- ID: ${row.ID} | ${row.status || 'N/A'} | ${amt} ${cur} | Date: ${row.orderDate || 'N/A'}${customerSuffix}`;
             }
             if (entityType === 'Customers') {
-                return `- ID: ${row.ID} | Name: ${row.name || 'N/A'} | Country: ${row.country || 'N/A'}`;
+                return `- ${row.name || 'N/A'} | ${row.country || 'N/A'} | ${row.email || 'N/A'}`;
             }
             if (entityType === 'Products') {
-                return `- ID: ${row.ID} | Name: ${row.name || 'N/A'} | Price: ${row.currency || ''}${row.price || 'N/A'} | Stock: ${row.stock || 'N/A'}`;
+                const cur = row.currency || '';
+                return `- ${row.name || 'N/A'} | ${row.category || 'N/A'} | ${row.price || 'N/A'} ${cur} | Stock: ${row.stock || 'N/A'}`;
             }
             return `- ID: ${row.ID}`;
         });
