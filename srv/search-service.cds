@@ -13,5 +13,6 @@ service SearchService @(path: '/search') {
         results       : array of String;
         entityTypes   : array of String;
         isMultiEntity : Boolean;
+        generatedSQL  : String;
     };
 }

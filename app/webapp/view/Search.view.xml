@@ -55,6 +55,22 @@
             </Panel>
 
             <Panel
+                id="sqlPanel"
+                visible="false"
+                expandable="true"
+                expanded="false"
+                headerText="Generated SQL (click to expand)"
+                class="sapUiMediumMarginBeginEnd sapUiSmallMarginBottom">
+                <content>
+                    <Text
+                        id="sqlText"
+                        wrapping="true"
+                        class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginTopBottom"
+                        textDirection="LTR"/>
+                </content>
+            </Panel>
+
+            <Panel
                 id="resultsPanel"
                 visible="false"
                 expandable="false"

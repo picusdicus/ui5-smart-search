@@ -56,6 +56,7 @@ sap.ui.define([
 
             var sAnswer = oResult.answer || "";
             var aResults = oResult.results || [];
+            var sSQL = oResult.generatedSQL || "";
 
             this.byId("answerText").setText(sAnswer);
             this.byId("answerPanel").setVisible(true);
@@ -67,6 +68,15 @@ sap.ui.define([
             this.byId("resultsCount").setText(
                 oI18n.getText("resultsCount", [aResults.length])
             );
+
+            var oSqlPanel = this.byId("sqlPanel");
+            if (sSQL) {
+                this.byId("sqlText").setText(sSQL);
+                oSqlPanel.setVisible(true);
+                oSqlPanel.setExpanded(false);
+            } else {
+                oSqlPanel.setVisible(false);
+            }
         },
 
         _onSearchError: function (oError) {
@@ -124,6 +134,7 @@ sap.ui.define([
         _hidePanels: function () {
             this.byId("answerPanel").setVisible(false);
             this.byId("resultsPanel").setVisible(false);
+            this.byId("sqlPanel").setVisible(false);
         },
 
         _setBusy: function (bBusy) {

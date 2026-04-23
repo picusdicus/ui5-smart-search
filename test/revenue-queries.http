@@ -1,25 +1,47 @@
 @baseUrl = http://localhost:4004
 
-### Revenue by product category
+### Analytical - revenue by product category (→ SQL path)
 POST {{baseUrl}}/search/searchAI
 Content-Type: application/json
 
-{
-  "query": "monthly revenue by product category"
-}
+{ "query": "monthly revenue by product category" }
 
-### Best selling products
+###
+
+### Analytical - best selling products (→ SQL path)
 POST {{baseUrl}}/search/searchAI
 Content-Type: application/json
 
-{
-  "query": "which products are selling the most"
-}
+{ "query": "top 5 best selling products" }
 
-### Top customers by purchase amount
+###
+
+### Analytical - overdue invoices per country (→ SQL path)
 POST {{baseUrl}}/search/searchAI
 Content-Type: application/json
 
-{
-  "query": "top customers by total purchase amount"
-}
+{ "query": "how many overdue invoices per country" }
+
+###
+
+### Analytical - top customers by purchase amount (→ SQL path)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "top customers by total purchase amount" }
+
+###
+
+### Lookup - overdue invoices from Germany (→ RAG path)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "show me overdue invoices from Germany" }
+
+###
+
+### Lookup - customers from Mexico (→ RAG path)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "customers from Mexico" }

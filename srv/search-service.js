@@ -3,13 +3,19 @@
 const cds = require('@sap/cds');
 const { embedText }             = require('./lib/embeddings');
 const { vectorSearch,
-        parallelVectorSearch }  = require('./lib/hana-vector');
+        parallelVectorSearch,
+        getConnection }         = require('./lib/hana-vector');
 const { askLlama,
         askLlamaMultiEntity }   = require('./lib/ollama-client');
 const { detectEntities,
         mergeResults,
         enrichWithRelationships,
         buildContextBlock }     = require('./lib/context-builder');
+const { detectIntent }          = require('./lib/intent-detector');
+const { generateSQL }           = require('./lib/sql-generator');
+const { validateSQL }           = require('./lib/sql-validator');
+const { executeSQL,
+        formatSQLContext }      = require('./lib/sql-executor');
 
 /**
  * Detects the single most relevant SAP entity (legacy single-entity path).
@@ -45,6 +51,31 @@ module.exports = class SearchService extends cds.ApplicationService {
     async _handleSearchAI(req) {
         try {
             const { query } = req.data;
+
+            // STEP 0: Detect intent — analytical queries go to SQL path
+            const intent = await detectIntent(query);
+
+            if (intent === 'analytical') {
+                const sql = await generateSQL(query);
+                const { valid, error } = validateSQL(sql);
+
+                if (valid) {
+                    const conn = await getConnection();
+                    const rows = await executeSQL(sql, conn);
+                    const context = formatSQLContext(rows, query);
+                    const { answer } = await askLlamaMultiEntity(query, context, ['Analytics']);
+                    console.log('[search-service] Analytical path complete');
+                    return {
+                        answer,
+                        results:      rows.map(r => JSON.stringify(r)),
+                        entityTypes:  ['Analytics'],
+                        isMultiEntity: false,
+                        generatedSQL: sql,
+                    };
+                }
+
+                console.warn('[searchAI] Invalid SQL, falling back to RAG:', error);
+            }
 
             // STEP 1: Detect relevant entities
             const entities = detectEntities(query);
@@ -91,6 +122,7 @@ module.exports = class SearchService extends cds.ApplicationService {
                     }),
                     entityTypes:  entityNames,
                     isMultiEntity: true,
+                    generatedSQL:  null,
                 };
 
             } else {
@@ -119,6 +151,7 @@ module.exports = class SearchService extends cds.ApplicationService {
                     results,
                     entityTypes:  [entityName],
                     isMultiEntity: false,
+                    generatedSQL:  null,
                 };
             }
 
