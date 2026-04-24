@@ -60,3 +60,9 @@ entity SalesOrderItems : cuid, managed {
         @Core.MediaType          : 'application/octet-stream'
         @cds.persistence.exists  : false;  // HDI defines this as REAL_VECTOR(768)
 }
+
+entity SyncLog : managed {
+  key entityName  : String(50);
+  lastSyncTime    : DateTime;
+  recordsSynced   : Integer;
+}
