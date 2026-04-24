@@ -12,7 +12,8 @@ const { detectEntities,
         enrichWithRelationships,
         buildContextBlock }     = require('./lib/context-builder');
 const { detectIntent }          = require('./lib/intent-detector');
-const { fetchBusinessPartnerById } = require('./lib/s4-client');
+const { fetchBusinessPartnerById,
+        createBusinessPartner }    = require('./lib/s4-client');
 const { generateSQL }           = require('./lib/sql-generator');
 const { validateSQL }           = require('./lib/sql-validator');
 const { executeSQL,
@@ -39,6 +40,7 @@ module.exports = class SearchService extends cds.ApplicationService {
     async init() {
         this.on('searchAI',        this._handleSearchAI.bind(this));
         this.on('suggestCustomer', this._handleSuggestCustomer.bind(this));
+        this.on('createCustomer',  this._handleCreateCustomer.bind(this));
         return super.init();
     }
 
@@ -167,17 +169,21 @@ module.exports = class SearchService extends cds.ApplicationService {
         try {
             const { query } = req.data;
 
-            const vector    = await embedText(query);
-            const matches   = await vectorSearch('Customers', vector, 1);
-
-            if (!matches || matches.length === 0) {
-                return { suggestedFields: null, similarBPId: null, similarBPName: null, duplicateWarning: false };
+            // Best-effort: vector search for similar BP (requires HANA)
+            let topMatch = null;
+            let bp = null;
+            let isDuplicate = false;
+            try {
+                const vector  = await embedText(query);
+                const matches = await vectorSearch('Customers', vector, 1);
+                if (matches && matches.length > 0) {
+                    topMatch    = matches[0];
+                    isDuplicate = topMatch.SCORE > 0.95;
+                    bp = await fetchBusinessPartnerById(topMatch.ID);
+                }
+            } catch (hanaErr) {
+                console.warn('[search-service] suggestCustomer: vector search unavailable, proceeding without reference BP:', hanaErr.message);
             }
-
-            const topMatch    = matches[0];
-            const isDuplicate = topMatch.SCORE > 0.95;
-
-            const bp = await fetchBusinessPartnerById(topMatch.ID);
 
             const prompt =
                 `Suggest a realistic company name for:\n"${query}"\nReturn ONLY JSON, no markdown:\n{"name":"..."}`;
@@ -190,23 +196,52 @@ module.exports = class SearchService extends cds.ApplicationService {
 
             const suggested = {
                 name:        parsed.name,
-                language:    bp.language    || 'EN',
-                industry:    bp.industry    || '',
-                partnerType: bp.partnerType || '2',
-                grouping:    bp.grouping    || 'BP01',
+                language:    (bp && bp.language)    || 'EN',
+                industry:    (bp && bp.industry)    || '',
+                partnerType: (bp && bp.partnerType) || '2',
+                grouping:    (bp && bp.grouping)    || 'BP01',
             };
 
-            console.log(`[search-service] suggestCustomer complete — duplicate=${isDuplicate}, similarBP=${topMatch.ID}`);
+            console.log(`[search-service] suggestCustomer complete — duplicate=${isDuplicate}, similarBP=${topMatch ? topMatch.ID : 'none'}`);
 
             return {
                 suggestedFields:  JSON.stringify(suggested),
-                similarBPId:      topMatch.ID,
-                similarBPName:    topMatch.NAME || bp.name,
+                similarBPId:      topMatch ? topMatch.ID   : '',
+                similarBPName:    topMatch ? (topMatch.NAME || (bp && bp.name) || '') : '',
                 duplicateWarning: isDuplicate,
             };
         } catch (err) {
             console.error('[search-service] suggestCustomer error:', err);
             req.error(500, `suggestCustomer failed: ${err.message}`);
+        }
+    }
+
+    async _handleCreateCustomer(req) {
+        try {
+            const { name, language, grouping, industry, partnerType } = req.data;
+
+            const result = await createBusinessPartner({ name, language, grouping });
+
+            try {
+                const conn = await getConnection();
+                const text = `${name} ${language || ''} ${grouping || ''}`.trim();
+                const embedding = await embedText(text);
+                const vectorStr = `[${embedding.join(',')}]`;
+                await conn.exec(
+                    `INSERT INTO SMART_SEARCH_CUSTOMERS (ID, NAME, LANGUAGE, GROUPING, EMBEDDING)
+                     VALUES (?, ?, ?, ?, TO_REAL_VECTOR(?))`,
+                    [result.id, name, language || 'EN', grouping || 'BP01', vectorStr]
+                );
+            } catch (syncErr) {
+                console.warn('[search-service] createCustomer: vector sync skipped:', syncErr.message);
+            }
+
+            console.log(`[search-service] createCustomer complete — id=${result.id}`);
+            return { id: result.id, success: true, message: `Business Partner ${result.id} created successfully` };
+
+        } catch (err) {
+            console.error('[search-service] createCustomer error:', err);
+            req.error(500, `createCustomer failed: ${err.message}`);
         }
     }
 };

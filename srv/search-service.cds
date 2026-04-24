@@ -22,4 +22,16 @@ service SearchService @(path: '/search') {
         similarBPName    : String;
         duplicateWarning : Boolean;
     };
+
+    action createCustomer(
+        name        : String,
+        language    : String,
+        grouping    : String,
+        industry    : String,
+        partnerType : String
+    ) returns {
+        id      : String;
+        success : Boolean;
+        message : String;
+    };
 }

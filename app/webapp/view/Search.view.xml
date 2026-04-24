@@ -4,8 +4,86 @@
     xmlns="sap.m"
     displayBlock="true">
 
+    <mvc:dependents>
+        <Dialog id="newCustomerDialog" title="New Customer" contentWidth="500px">
+            <content>
+                <VBox class="sapUiSmallMarginBeginEnd sapUiSmallMarginTopBottom">
+
+                    <Label text="Describe the new Business Partner:" class="sapUiSmallMarginBottom"/>
+                    <TextArea
+                        id="customerDescription"
+                        rows="4"
+                        width="100%"
+                        growing="true"
+                        growingMaxLines="6"
+                        placeholder="e.g. German engineering company in Munich specialising in industrial automation"
+                        class="sapUiSmallMarginBottom"/>
+                    <Button
+                        text="Suggest Fields"
+                        type="Emphasized"
+                        icon="sap-icon://ai"
+                        press=".onGetSuggestions"
+                        width="100%"
+                        class="sapUiSmallMarginBottom"/>
+
+                    <BusyIndicator id="dialogBusy" visible="false" size="1rem" class="sapUiSmallMarginBottom"/>
+
+                    <MessageStrip
+                        id="suggestedByStrip"
+                        type="Information"
+                        visible="false"
+                        showCloseButton="false"
+                        class="sapUiSmallMarginBottom"/>
+                    <MessageStrip
+                        id="duplicateWarningStrip"
+                        type="Warning"
+                        visible="false"
+                        class="sapUiSmallMarginBottom"
+                        text="A similar Business Partner already exists in the system."/>
+                    <MessageStrip
+                        id="createErrorStrip"
+                        type="Error"
+                        visible="false"
+                        class="sapUiSmallMarginBottom"/>
+
+                    <Label text="Company Name" required="true"/>
+                    <Input id="fieldName" width="100%" class="sapUiSmallMarginBottom"/>
+                    <Label text="Language Code" required="true"/>
+                    <Input id="fieldLanguage" width="100%" maxLength="2" placeholder="EN" class="sapUiSmallMarginBottom"/>
+                    <Label text="BP Grouping"/>
+                    <Input id="fieldGrouping" width="100%" placeholder="BP01" class="sapUiSmallMarginBottom"/>
+                    <Label text="Industry"/>
+                    <Input id="fieldIndustry" width="100%" class="sapUiSmallMarginBottom"/>
+                    <Label text="Partner Type"/>
+                    <Input id="fieldPartnerType" width="100%" placeholder="2" class="sapUiSmallMarginBottom"/>
+
+                </VBox>
+            </content>
+            <beginButton>
+                <Button text="Create" type="Emphasized" press=".onCreateCustomer"/>
+            </beginButton>
+            <endButton>
+                <Button text="Cancel" press=".onCancelDialog"/>
+            </endButton>
+        </Dialog>
+    </mvc:dependents>
+
     <App id="app">
-    <Page title="{i18n>appTitle}" showHeader="true">
+    <Page showHeader="true">
+        <customHeader>
+            <Bar>
+                <contentMiddle>
+                    <Title text="{i18n>appTitle}"/>
+                </contentMiddle>
+                <contentRight>
+                    <Button
+                        text="New Customer"
+                        type="Emphasized"
+                        icon="sap-icon://add"
+                        press=".onNewCustomer"/>
+                </contentRight>
+            </Bar>
+        </customHeader>
         <content>
             <VBox
                 alignItems="Center"
