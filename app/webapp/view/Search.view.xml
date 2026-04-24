@@ -19,6 +19,7 @@
                         placeholder="e.g. German engineering company in Munich specialising in industrial automation"
                         class="sapUiSmallMarginBottom"/>
                     <Button
+                        id="suggestButton"
                         text="Suggest Fields"
                         type="Emphasized"
                         icon="sap-icon://ai"
@@ -60,7 +61,7 @@
                 </VBox>
             </content>
             <beginButton>
-                <Button text="Create" type="Emphasized" press=".onCreateCustomer"/>
+                <Button id="createButton" text="Create" type="Emphasized" press=".onCreateCustomer"/>
             </beginButton>
             <endButton>
                 <Button text="Cancel" press=".onCancelDialog"/>
@@ -102,6 +103,11 @@
                     id="busyIndicator"
                     visible="false"
                     size="2rem"
+                    class="sapUiSmallMarginBottom"/>
+                <Text
+                    id="searchingText"
+                    text="Searching..."
+                    visible="false"
                     class="sapUiSmallMarginBottom"/>
 
                 <MessageStrip

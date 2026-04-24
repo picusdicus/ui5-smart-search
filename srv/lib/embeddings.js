@@ -11,19 +11,27 @@ const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
  * @throws {Error} If Ollama is not reachable or returns an unexpected response.
  */
 async function embedText(text) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     let response;
     try {
         response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: 'nomic-embed-text', prompt: text }),
+            signal: controller.signal,
         });
     } catch (err) {
-        throw new Error(`Ollama not reachable at ${OLLAMA_URL}. Is it running?`);
+        if (err.name === 'AbortError') {
+            throw new Error('AI response timed out. Please try again.');
+        }
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
+    } finally {
+        clearTimeout(timeout);
     }
 
     if (!response.ok) {
-        throw new Error(`Ollama embeddings request failed: ${response.status} ${response.statusText}`);
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
     }
 
     const json = await response.json();

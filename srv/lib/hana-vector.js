@@ -57,21 +57,36 @@ async function getConnection() {
             });
             return _connection;
         } catch (err) {
-            console.warn('[hana-vector] Connection ping failed, reconnecting:', err.message);
+            console.warn('[hana] Connection ping failed, clearing singleton:', err.message);
             _connection = null;
         }
     }
 
-    const conn = hana.createConnection();
-    await new Promise((resolve, reject) => {
-        conn.connect(CONN_PARAMS, (err) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
-    _connection = conn;
-    console.log('[hana-vector] New HANA connection established.');
-    return _connection;
+    const MAX_RETRIES = 3;
+    let lastErr;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        console.log(`[hana] Reconnecting attempt ${attempt}/${MAX_RETRIES}`);
+        try {
+            const conn = hana.createConnection();
+            await new Promise((resolve, reject) => {
+                conn.connect(CONN_PARAMS, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            _connection = conn;
+            console.log('[hana-vector] New HANA connection established.');
+            return _connection;
+        } catch (err) {
+            lastErr = err;
+            console.error(`[hana] Reconnect attempt ${attempt}/${MAX_RETRIES} failed:`, err.message);
+            if (attempt < MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            }
+        }
+    }
+    _connection = null;
+    throw lastErr;
 }
 
 /**

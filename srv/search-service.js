@@ -136,8 +136,18 @@ module.exports = class SearchService extends cds.ApplicationService {
                 console.log(`[search-service] Single-entity path: ${entityName} for query: "${query}"`);
 
                 const queryVector = await embedText(query);
-                const rows        = await vectorSearch(entityName, queryVector);
+                const rows = await vectorSearch(entityName, queryVector);
                 console.log(`[search-service] Vector search returned ${rows.length} rows`);
+
+                if (!rows || rows.length === 0) {
+                    return {
+                        answer: 'No matching records found for your query.',
+                        results: [],
+                        entityTypes: [entityName],
+                        isMultiEntity: false,
+                        generatedSQL: null,
+                    };
+                }
 
                 const { answer } = await askLlama(query, rows.slice(0, 3), entityName);
                 console.log(`[search-service] Ollama answered for entity: ${entityName}`);
@@ -160,8 +170,16 @@ module.exports = class SearchService extends cds.ApplicationService {
             }
 
         } catch (err) {
-            console.error('[search-service] Error:', err);
-            req.error(500, `Search failed: ${err.message}`);
+            console.error('[search-service] searchAI error:', err);
+            let answer = 'Search is currently unavailable. Please try again.';
+            if (err.message && err.message.includes('AI service unavailable')) {
+                answer = 'AI service unavailable. Please ensure Ollama is running.';
+            } else if (err.message && err.message.includes('timed out')) {
+                answer = 'AI response timed out. Please try again.';
+            } else if (err.message && err.message.includes('SAP system')) {
+                answer = 'SAP system temporarily unavailable. Please try again later.';
+            }
+            return { answer, results: [], entityTypes: [], isMultiEntity: false, generatedSQL: null };
         }
     }
 
@@ -190,9 +208,13 @@ module.exports = class SearchService extends cds.ApplicationService {
 
             const { answer } = await askLlama(prompt, [], 'Customers');
 
-            const jsonMatch = answer.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) throw new Error(`Llama did not return JSON: ${answer.substring(0, 100)}`);
-            const parsed = JSON.parse(jsonMatch[0]);
+            let parsed = { name: '', language: 'EN', grouping: 'BP01' };
+            try {
+                const jsonMatch = answer.match(/\{[\s\S]*\}/);
+                if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+            } catch (parseErr) {
+                console.warn('[suggest] JSON parse failed, using defaults');
+            }
 
             const suggested = {
                 name:        parsed.name,
@@ -212,7 +234,13 @@ module.exports = class SearchService extends cds.ApplicationService {
             };
         } catch (err) {
             console.error('[search-service] suggestCustomer error:', err);
-            req.error(500, `suggestCustomer failed: ${err.message}`);
+            let message = 'Suggestion service is currently unavailable. Please try again.';
+            if (err.message && err.message.includes('AI service unavailable')) {
+                message = 'AI service unavailable. Please ensure Ollama is running.';
+            } else if (err.message && err.message.includes('timed out')) {
+                message = 'AI response timed out. Please try again.';
+            }
+            req.error(503, message);
         }
     }
 
@@ -241,7 +269,13 @@ module.exports = class SearchService extends cds.ApplicationService {
 
         } catch (err) {
             console.error('[search-service] createCustomer error:', err);
-            req.error(500, `createCustomer failed: ${err.message}`);
+            let message = 'Customer creation failed. Please try again.';
+            if (err.message && err.message.includes('SAP system')) {
+                message = 'SAP system temporarily unavailable. Please try again later.';
+            } else if (err.message && err.message.includes('AI service unavailable')) {
+                message = 'AI service unavailable. Please ensure Ollama is running.';
+            }
+            req.error(503, message);
         }
     }
 };

@@ -14,11 +14,16 @@ sap.ui.define([
     return Controller.extend("ui5.smartsearch.controller.Search", {
 
         onSearch: function (oEvent) {
-            var sQuery = oEvent.getParameter("query") || oEvent.getSource().getValue();
-            if (!sQuery || !sQuery.trim()) {
+            var sQuery = (oEvent.getParameter("query") || oEvent.getSource().getValue() || "").trim();
+            if (!sQuery) return;
+            if (sQuery.length < 3) {
+                var oStrip = this.byId("errorStrip");
+                oStrip.setType("Warning");
+                oStrip.setText("Please enter at least 3 characters to search.");
+                oStrip.setVisible(true);
                 return;
             }
-            this._executeSearch(sQuery.trim());
+            this._executeSearch(sQuery);
         },
 
         onLiveChange: function (oEvent) {
@@ -34,7 +39,10 @@ sap.ui.define([
         _executeSearch: function (sQuery) {
             this._setBusy(true);
             this._hidePanels();
-            this.byId("errorStrip").setVisible(false);
+            var oStrip = this.byId("errorStrip");
+            oStrip.setType("Error");
+            oStrip.setVisible(false);
+            this.byId("searchField").setEnabled(false);
 
             fetch(CAP_URL, {
                 method: "POST",
@@ -55,6 +63,7 @@ sap.ui.define([
 
         _onSearchSuccess: function (oResult) {
             this._setBusy(false);
+            this.byId("searchField").setEnabled(true);
 
             var sAnswer = oResult.answer || "";
             var aResults = oResult.results || [];
@@ -83,9 +92,23 @@ sap.ui.define([
 
         _onSearchError: function (oError) {
             this._setBusy(false);
-            var sMessage = (oError && oError.message) ? oError.message : "An unexpected error occurred.";
+            this.byId("searchField").setEnabled(true);
+            var sRaw = (oError && oError.message) ? oError.message : "";
+            var sFriendly;
+            if (sRaw.indexOf("AI service unavailable") !== -1 || sRaw.indexOf("ECONNREFUSED") !== -1 || sRaw.indexOf("Ollama") !== -1) {
+                sFriendly = "AI service unavailable. Please ensure Ollama is running and try again.";
+            } else if (sRaw.indexOf("timed out") !== -1) {
+                sFriendly = "AI response timed out. Please try again.";
+            } else if (sRaw.indexOf("SAP system") !== -1) {
+                sFriendly = "SAP system temporarily unavailable. Please try again later.";
+            } else if (sRaw.indexOf("Failed to fetch") !== -1 || sRaw.indexOf("NetworkError") !== -1 || sRaw.indexOf("fetch") !== -1) {
+                sFriendly = "Connection error. Please check your network and try again.";
+            } else {
+                sFriendly = "Search failed. Please try again.";
+            }
             var oStrip = this.byId("errorStrip");
-            oStrip.setText(sMessage);
+            oStrip.setType("Error");
+            oStrip.setText(sFriendly);
             oStrip.setVisible(true);
         },
 
@@ -128,7 +151,9 @@ sap.ui.define([
 
         clearSearch: function () {
             this._hidePanels();
-            this.byId("errorStrip").setVisible(false);
+            var oStrip = this.byId("errorStrip");
+            oStrip.setType("Error");
+            oStrip.setVisible(false);
             this.byId("answerText").setText("");
             this.byId("resultsCount").setText("");
         },
@@ -141,6 +166,7 @@ sap.ui.define([
 
         _setBusy: function (bBusy) {
             this.byId("busyIndicator").setVisible(bBusy);
+            this.byId("searchingText").setVisible(bBusy);
         },
 
         onNewCustomer: function () {
@@ -160,6 +186,8 @@ sap.ui.define([
             this.byId("duplicateWarningStrip").setVisible(false);
             this.byId("createErrorStrip").setVisible(false);
             this.byId("dialogBusy").setVisible(false);
+            this.byId("suggestButton").setEnabled(true);
+            this.byId("createButton").setEnabled(true);
         },
 
         onCancelDialog: function () {
@@ -171,6 +199,8 @@ sap.ui.define([
             if (!sQuery) return;
 
             this.byId("dialogBusy").setVisible(true);
+            this.byId("suggestButton").setEnabled(false);
+            this.byId("createButton").setEnabled(false);
             this.byId("suggestedByStrip").setVisible(false);
             this.byId("duplicateWarningStrip").setVisible(false);
             this.byId("createErrorStrip").setVisible(false);
@@ -192,6 +222,8 @@ sap.ui.define([
 
         _onSuggestSuccess: function (oResult) {
             this.byId("dialogBusy").setVisible(false);
+            this.byId("suggestButton").setEnabled(true);
+            this.byId("createButton").setEnabled(true);
 
             var oFields = {};
             try { oFields = JSON.parse(oResult.suggestedFields || "{}"); } catch (e) { /* ignore */ }
@@ -213,8 +245,19 @@ sap.ui.define([
 
         _onSuggestError: function (oError) {
             this.byId("dialogBusy").setVisible(false);
+            this.byId("suggestButton").setEnabled(true);
+            this.byId("createButton").setEnabled(true);
+            var sRaw = (oError && oError.message) ? oError.message : "";
+            var sFriendly;
+            if (sRaw.indexOf("AI service unavailable") !== -1 || sRaw.indexOf("Ollama") !== -1) {
+                sFriendly = "AI service unavailable. Please ensure Ollama is running.";
+            } else if (sRaw.indexOf("timed out") !== -1) {
+                sFriendly = "AI response timed out. Please try again.";
+            } else {
+                sFriendly = "Suggestion failed. Please try again.";
+            }
             var oStrip = this.byId("createErrorStrip");
-            oStrip.setText("Suggestion failed: " + (oError.message || "Unknown error"));
+            oStrip.setText(sFriendly);
             oStrip.setVisible(true);
         },
 
@@ -232,6 +275,8 @@ sap.ui.define([
             this.byId("fieldName").setValueState("None");
             this.byId("createErrorStrip").setVisible(false);
             this.byId("dialogBusy").setVisible(true);
+            this.byId("createButton").setEnabled(false);
+            this.byId("suggestButton").setEnabled(false);
 
             fetch(CREATE_URL, {
                 method: "POST",
@@ -256,6 +301,8 @@ sap.ui.define([
 
         _onCreateSuccess: function (oResult) {
             this.byId("dialogBusy").setVisible(false);
+            this.byId("createButton").setEnabled(true);
+            this.byId("suggestButton").setEnabled(true);
             this.byId("newCustomerDialog").close();
             var oStrip = this.byId("errorStrip");
             oStrip.setType("Success");
@@ -265,8 +312,19 @@ sap.ui.define([
 
         _onCreateError: function (oError) {
             this.byId("dialogBusy").setVisible(false);
+            this.byId("createButton").setEnabled(true);
+            this.byId("suggestButton").setEnabled(true);
+            var sRaw = (oError && oError.message) ? oError.message : "";
+            var sFriendly;
+            if (sRaw.indexOf("SAP system") !== -1) {
+                sFriendly = "SAP system temporarily unavailable. Please try again later.";
+            } else if (sRaw.indexOf("AI service unavailable") !== -1 || sRaw.indexOf("Ollama") !== -1) {
+                sFriendly = "AI service unavailable. Please ensure Ollama is running.";
+            } else {
+                sFriendly = "Customer creation failed. Please try again.";
+            }
             var oStrip = this.byId("createErrorStrip");
-            oStrip.setText("Creation failed: " + (oError.message || "Unknown error"));
+            oStrip.setText(sFriendly);
             oStrip.setVisible(true);
         }
 

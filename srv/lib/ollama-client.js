@@ -29,6 +29,8 @@ async function askLlama(query, contextRows, entityType) {
         `Given the following ${entityType} records:\n\n${formattedContext}\n\n` +
         `Answer this question concisely: ${query}`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     let response;
     try {
         response = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -47,13 +49,19 @@ async function askLlama(query, contextRows, entityType) {
                     { role: 'user', content: userContent },
                 ],
             }),
+            signal: controller.signal,
         });
     } catch (err) {
-        throw new Error(`Ollama not reachable at ${OLLAMA_URL}. Is it running?`);
+        if (err.name === 'AbortError') {
+            throw new Error('AI response timed out. Please try again.');
+        }
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
+    } finally {
+        clearTimeout(timeout);
     }
 
     if (!response.ok) {
-        throw new Error(`Ollama chat request failed: ${response.status} ${response.statusText}`);
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
     }
 
     const json = await response.json();
@@ -76,6 +84,8 @@ async function askLlamaMultiEntity(query, contextBlock, entityTypes) {
         `${contextBlock}\n\n` +
         `Answer this question thoroughly: ${query}`;
 
+    const controller2 = new AbortController();
+    const timeout2 = setTimeout(() => controller2.abort(), 30000);
     let response;
     try {
         response = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -103,13 +113,19 @@ async function askLlamaMultiEntity(query, contextBlock, entityTypes) {
                     { role: 'user', content: userContent },
                 ],
             }),
+            signal: controller2.signal,
         });
     } catch (err) {
-        throw new Error(`Ollama not reachable at ${OLLAMA_URL}. Is it running?`);
+        if (err.name === 'AbortError') {
+            throw new Error('AI response timed out. Please try again.');
+        }
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
+    } finally {
+        clearTimeout(timeout2);
     }
 
     if (!response.ok) {
-        throw new Error(`Ollama chat request failed: ${response.status} ${response.statusText}`);
+        throw new Error('AI service unavailable. Please ensure Ollama is running.');
     }
 
     const json = await response.json();

@@ -57,13 +57,17 @@ async function fetchBusinessPartners(top = 100) {
 
   const url = `${BASE_URL()}/A_BusinessPartner?${params.toString()}`;
 
-  const response = await fetch(url, { headers: headers() });
+  let response;
+  try {
+    response = await fetch(url, { headers: headers() });
+  } catch (err) {
+    throw new Error('SAP system temporarily unavailable.');
+  }
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(
-      `fetchBusinessPartners failed — HTTP ${response.status}: ${body}`
-    );
+    console.error(`[s4-client] fetchBusinessPartners HTTP ${response.status}: ${body}`);
+    throw new Error('SAP system temporarily unavailable.');
   }
 
   const json = await response.json();
@@ -81,13 +85,17 @@ async function fetchBusinessPartnerById(bpId) {
   const params = new URLSearchParams({ $format: "json" });
   const url = `${BASE_URL()}/A_BusinessPartner('${bpId}')?${params.toString()}`;
 
-  const response = await fetch(url, { headers: headers() });
+  let response;
+  try {
+    response = await fetch(url, { headers: headers() });
+  } catch (err) {
+    throw new Error('SAP system temporarily unavailable.');
+  }
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(
-      `fetchBusinessPartnerById(${bpId}) failed — HTTP ${response.status}: ${body}`
-    );
+    console.error(`[s4-client] fetchBusinessPartnerById(${bpId}) HTTP ${response.status}: ${body}`);
+    throw new Error('SAP system temporarily unavailable.');
   }
 
   const json = await response.json();
@@ -107,10 +115,15 @@ async function createBusinessPartner(data) {
   const url = `${BASE_URL()}/A_BusinessPartner`;
 
   // SAP OData V2 requires a CSRF token for write operations
-  const tokenResponse = await fetch(`${BASE_URL()}/$metadata`, {
-    method: "GET",
-    headers: headers({ "X-CSRF-Token": "Fetch" }),
-  });
+  let tokenResponse;
+  try {
+    tokenResponse = await fetch(`${BASE_URL()}/$metadata`, {
+      method: "GET",
+      headers: headers({ "X-CSRF-Token": "Fetch" }),
+    });
+  } catch (err) {
+    throw new Error('SAP system temporarily unavailable.');
+  }
   const csrfToken = tokenResponse.headers.get("x-csrf-token");
   if (!csrfToken) throw new Error("Failed to fetch CSRF token from API Hub");
 
@@ -122,11 +135,16 @@ async function createBusinessPartner(data) {
     BusinessPartnerIsBlocked: false,
   });
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: headers({ "X-CSRF-Token": csrfToken }),
-    body,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: headers({ "X-CSRF-Token": csrfToken }),
+      body,
+    });
+  } catch (err) {
+    throw new Error('SAP system temporarily unavailable.');
+  }
 
   if (!response.ok) {
     console.warn(`[s4-client] Write not supported in sandbox, returning mock response (HTTP ${response.status})`);
