@@ -15,4 +15,11 @@ service SearchService @(path: '/search') {
         isMultiEntity : Boolean;
         generatedSQL  : String;
     };
+
+    action suggestCustomer(query: String) returns {
+        suggestedFields  : String;
+        similarBPId      : String;
+        similarBPName    : String;
+        duplicateWarning : Boolean;
+    };
 }

@@ -12,6 +12,7 @@ const { detectEntities,
         enrichWithRelationships,
         buildContextBlock }     = require('./lib/context-builder');
 const { detectIntent }          = require('./lib/intent-detector');
+const { fetchBusinessPartnerById } = require('./lib/s4-client');
 const { generateSQL }           = require('./lib/sql-generator');
 const { validateSQL }           = require('./lib/sql-validator');
 const { executeSQL,
@@ -36,7 +37,8 @@ function detectEntity(query) {
 module.exports = class SearchService extends cds.ApplicationService {
 
     async init() {
-        this.on('searchAI', this._handleSearchAI.bind(this));
+        this.on('searchAI',        this._handleSearchAI.bind(this));
+        this.on('suggestCustomer', this._handleSuggestCustomer.bind(this));
         return super.init();
     }
 
@@ -158,6 +160,53 @@ module.exports = class SearchService extends cds.ApplicationService {
         } catch (err) {
             console.error('[search-service] Error:', err);
             req.error(500, `Search failed: ${err.message}`);
+        }
+    }
+
+    async _handleSuggestCustomer(req) {
+        try {
+            const { query } = req.data;
+
+            const vector    = await embedText(query);
+            const matches   = await vectorSearch('Customers', vector, 1);
+
+            if (!matches || matches.length === 0) {
+                return { suggestedFields: null, similarBPId: null, similarBPName: null, duplicateWarning: false };
+            }
+
+            const topMatch    = matches[0];
+            const isDuplicate = topMatch.SCORE > 0.95;
+
+            const bp = await fetchBusinessPartnerById(topMatch.ID);
+
+            const prompt =
+                `Suggest a realistic company name for:\n"${query}"\nReturn ONLY JSON, no markdown:\n{"name":"..."}`;
+
+            const { answer } = await askLlama(prompt, [], 'Customers');
+
+            const jsonMatch = answer.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error(`Llama did not return JSON: ${answer.substring(0, 100)}`);
+            const parsed = JSON.parse(jsonMatch[0]);
+
+            const suggested = {
+                name:        parsed.name,
+                language:    bp.language    || 'EN',
+                industry:    bp.industry    || '',
+                partnerType: bp.partnerType || '2',
+                grouping:    bp.grouping    || 'BP01',
+            };
+
+            console.log(`[search-service] suggestCustomer complete — duplicate=${isDuplicate}, similarBP=${topMatch.ID}`);
+
+            return {
+                suggestedFields:  JSON.stringify(suggested),
+                similarBPId:      topMatch.ID,
+                similarBPName:    topMatch.NAME || bp.name,
+                duplicateWarning: isDuplicate,
+            };
+        } catch (err) {
+            console.error('[search-service] suggestCustomer error:', err);
+            req.error(500, `suggestCustomer failed: ${err.message}`);
         }
     }
 };

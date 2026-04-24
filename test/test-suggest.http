@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:4004
+
+### Suggest similar to existing
+POST {{baseUrl}}/search/suggestCustomer
+Content-Type: application/json
+
+{ "query": "technology company similar to Nue tech" }
+
+### Suggest for new country
+POST {{baseUrl}}/search/suggestCustomer
+Content-Type: application/json
+
+{ "query": "create a German engineering company" }
+
+### Duplicate detection test
+POST {{baseUrl}}/search/suggestCustomer
+Content-Type: application/json
+
+{ "query": "Nue tech inc" }
