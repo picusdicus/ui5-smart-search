@@ -1,6 +1,8 @@
 'use strict';
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const Groq = require('groq-sdk');
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const SYSTEM_PROMPT =
     'You are a HANA SQL expert. Generate ONE valid SELECT query. ' +
@@ -76,26 +78,18 @@ function quoteColumnRefs(sql) {
  * @returns {Promise<string>}
  */
 async function generateSQL(query) {
-    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: 'llama3.2',
-            stream: false,
-            options: { num_predict: 512 },
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: query },
-            ],
-        }),
+    const response = await groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: query },
+        ],
+        max_tokens: 512,
+        temperature: 0.3,
     });
 
-    if (!response.ok) {
-        throw new Error(`Ollama SQL generation failed: ${response.status} ${response.statusText}`);
-    }
-
-    const json = await response.json();
-    const raw = (json.message?.content || '').trim();
+    console.log(`[groq] tokens used: ${response.usage?.total_tokens}`);
+    const raw = (response.choices[0]?.message?.content || '').trim();
 
     // Strip markdown code fences if the model ignores the instruction
     let sql = raw

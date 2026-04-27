@@ -22,7 +22,10 @@
       "Bash(npm install *)",
       "Bash(npx cds *)",
       "Bash(node srv/lib/create-salesorderitems-table.js)",
-      "Bash(node srv/lib/seed-embeddings.js)"
+      "Bash(node srv/lib/seed-embeddings.js)",
+      "Bash(node -e ' *)",
+      "Bash(node test/test/test-groq-models.js)",
+      "Bash(node test/test-groq-models.js)"
     ]
   }
 }

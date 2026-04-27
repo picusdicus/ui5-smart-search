@@ -195,7 +195,7 @@ async function main() {
 
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
-                const vec = await embedText(entity.textFn(row));
+                const vec = await embedText(entity.textFn(row), false);
                 // TO_REAL_VECTOR() expects a JSON array string, not binary
                 const vecStr = '[' + Array.from(vec).join(',') + ']';
 

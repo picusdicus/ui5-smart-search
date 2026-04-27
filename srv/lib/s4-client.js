@@ -156,8 +156,36 @@ async function createBusinessPartner(data) {
   return { id: result.BusinessPartner, success: true };
 }
 
+/**
+ * Fetch the country from the first address of a Business Partner.
+ *
+ * @param {string} bpId  Business Partner number.
+ * @returns {Promise<string>}  ISO country code, or empty string if not found.
+ */
+async function fetchBPAddress(bpId) {
+  const params = new URLSearchParams({
+    $filter: `BusinessPartner eq '${bpId}'`,
+    $format: "json",
+  });
+  const url = `${BASE_URL()}/A_BusinessPartnerAddress?${params.toString()}`;
+
+  let response;
+  try {
+    response = await fetch(url, { headers: headers() });
+  } catch (err) {
+    return '';
+  }
+
+  if (!response.ok) return '';
+
+  const json = await response.json();
+  const results = json?.d?.results ?? [];
+  return results[0]?.Country ?? '';
+}
+
 module.exports = {
   fetchBusinessPartners,
   fetchBusinessPartnerById,
+  fetchBPAddress,
   createBusinessPartner,
 };

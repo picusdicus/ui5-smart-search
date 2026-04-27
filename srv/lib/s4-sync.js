@@ -1,7 +1,7 @@
 'use strict';
 
 const { getConnection } = require('./hana-vector');
-const { fetchBusinessPartners } = require('./s4-client');
+const { fetchBusinessPartners, fetchBPAddress } = require('./s4-client');
 const { embedText } = require('./embeddings');
 
 function execSQL(conn, sql, params) {
@@ -68,14 +68,15 @@ async function fullSync() {
             if (bp.isBlocked === true) continue;
 
             try {
-                const text = `${bp.name} ${bp.language}`;
-                const vector = await embedText(text);
+                const country = await fetchBPAddress(bp.id);
+                const text = `${bp.name} ${country} ${bp.language}`.trim();
+                const vector = await embedText(text, false);
                 const vecStr = '[' + Array.from(vector).join(',') + ']';
 
                 await execSQL(
                     conn,
-                    `UPSERT "smart_search_Customers" ("ID", "name", "EMBEDDING") VALUES (?, ?, TO_REAL_VECTOR(?)) WITH PRIMARY KEY`,
-                    [bp.id, bp.name, vecStr]
+                    `UPSERT "smart_search_Customers" ("ID", "name", "country", "EMBEDDING") VALUES (?, ?, ?, TO_REAL_VECTOR(?)) WITH PRIMARY KEY`,
+                    [bp.id, bp.name, country, vecStr]
                 );
 
                 successCount++;
@@ -125,7 +126,7 @@ async function deltaSync() {
 
             try {
                 const text = `${bp.name} ${bp.language}`;
-                const vector = await embedText(text);
+                const vector = await embedText(text, false);
                 const vecStr = '[' + Array.from(vector).join(',') + ']';
 
                 await execSQL(

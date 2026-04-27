@@ -5,8 +5,8 @@ const { embedText }             = require('./lib/embeddings');
 const { vectorSearch,
         parallelVectorSearch,
         getConnection }         = require('./lib/hana-vector');
-const { askLlama,
-        askLlamaMultiEntity }   = require('./lib/ollama-client');
+const { askGroq,
+        askGroqMultiEntity }    = require('./lib/groq-client');
 const { detectEntities,
         mergeResults,
         enrichWithRelationships,
@@ -67,7 +67,7 @@ module.exports = class SearchService extends cds.ApplicationService {
                     const conn = await getConnection();
                     const rows = await executeSQL(sql, conn);
                     const context = formatSQLContext(rows, query);
-                    const { answer } = await askLlamaMultiEntity(query, context, ['Analytics']);
+                    const { answer } = await askGroqMultiEntity(query, context, ['Analytics']);
                     console.log('[search-service] Analytical path complete');
                     return {
                         answer,
@@ -91,7 +91,7 @@ module.exports = class SearchService extends cds.ApplicationService {
                 // ── MULTI-ENTITY PATH ──────────────────────────────────────────
 
                 // STEP 2: Embed query once
-                const vector = await embedText(query);
+                const vector = await embedText(query, true);
 
                 // STEP 3: Search all relevant entities in parallel (5 results each)
                 const entityResults = await parallelVectorSearch(entities, vector, 5);
@@ -109,8 +109,8 @@ module.exports = class SearchService extends cds.ApplicationService {
 
                 // STEP 7: Ask Llama with multi-entity prompt
                 const entityNames = entities.map(e => e.name);
-                const { answer } = await askLlamaMultiEntity(query, contextBlock, entityNames);
-                console.log(`[search-service] Ollama answered (multi-entity: ${entityNames.join(', ')})`);
+                const { answer } = await askGroqMultiEntity(query, contextBlock, entityNames);
+                console.log(`[search-service] Groq answered (multi-entity: ${entityNames.join(', ')})`);
 
                 // STEP 8: Return enriched results (EMBEDDING already stripped in mergeResults)
                 return {
@@ -135,7 +135,7 @@ module.exports = class SearchService extends cds.ApplicationService {
                 const entityName = detectEntity(query);
                 console.log(`[search-service] Single-entity path: ${entityName} for query: "${query}"`);
 
-                const queryVector = await embedText(query);
+                const queryVector = await embedText(query, true);
                 const rows = await vectorSearch(entityName, queryVector);
                 console.log(`[search-service] Vector search returned ${rows.length} rows`);
 
@@ -149,8 +149,8 @@ module.exports = class SearchService extends cds.ApplicationService {
                     };
                 }
 
-                const { answer } = await askLlama(query, rows.slice(0, 3), entityName);
-                console.log(`[search-service] Ollama answered for entity: ${entityName}`);
+                const { answer } = await askGroq(query, rows.slice(0, 3), entityName);
+                console.log(`[search-service] Groq answered for entity: ${entityName}`);
 
                 const results = rows.map((row) => JSON.stringify({
                     entity:  entityName,
@@ -173,7 +173,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             console.error('[search-service] searchAI error:', err);
             let answer = 'Search is currently unavailable. Please try again.';
             if (err.message && err.message.includes('AI service unavailable')) {
-                answer = 'AI service unavailable. Please ensure Ollama is running.';
+                answer = 'AI service unavailable. Please check your Groq API key.';
             } else if (err.message && err.message.includes('timed out')) {
                 answer = 'AI response timed out. Please try again.';
             } else if (err.message && err.message.includes('SAP system')) {
@@ -192,7 +192,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             let bp = null;
             let isDuplicate = false;
             try {
-                const vector  = await embedText(query);
+                const vector  = await embedText(query, true);
                 const matches = await vectorSearch('Customers', vector, 1);
                 if (matches && matches.length > 0) {
                     topMatch    = matches[0];
@@ -206,7 +206,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             const prompt =
                 `Suggest a realistic company name for:\n"${query}"\nReturn ONLY JSON, no markdown:\n{"name":"..."}`;
 
-            const { answer } = await askLlama(prompt, [], 'Customers');
+            const { answer } = await askGroq(prompt, [], 'Customers');
 
             let parsed = { name: '', language: 'EN', grouping: 'BP01' };
             try {
@@ -236,7 +236,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             console.error('[search-service] suggestCustomer error:', err);
             let message = 'Suggestion service is currently unavailable. Please try again.';
             if (err.message && err.message.includes('AI service unavailable')) {
-                message = 'AI service unavailable. Please ensure Ollama is running.';
+                message = 'AI service unavailable. Please check your Groq API key.';
             } else if (err.message && err.message.includes('timed out')) {
                 message = 'AI response timed out. Please try again.';
             }
@@ -253,7 +253,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             try {
                 const conn = await getConnection();
                 const text = `${name} ${language || ''} ${grouping || ''}`.trim();
-                const embedding = await embedText(text);
+                const embedding = await embedText(text, false);
                 const vectorStr = `[${embedding.join(',')}]`;
                 await conn.exec(
                     `INSERT INTO SMART_SEARCH_CUSTOMERS (ID, NAME, LANGUAGE, GROUPING, EMBEDDING)
@@ -273,7 +273,7 @@ module.exports = class SearchService extends cds.ApplicationService {
             if (err.message && err.message.includes('SAP system')) {
                 message = 'SAP system temporarily unavailable. Please try again later.';
             } else if (err.message && err.message.includes('AI service unavailable')) {
-                message = 'AI service unavailable. Please ensure Ollama is running.';
+                message = 'AI service unavailable. Please check your Groq API key.';
             }
             req.error(503, message);
         }

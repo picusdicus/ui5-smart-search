@@ -1,0 +1,55 @@
+@baseUrl = http://localhost:4004
+
+### [intent] Lookup query → should route to RAG path
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "customers in Germany" }
+
+###
+
+### [intent] Analytical query → should route to SQL path (Groq generates SQL)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "total revenue by product category" }
+
+###
+
+### [groq] Single-entity: products lookup (single-entity RAG + Groq answer)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "safety products in stock" }
+
+###
+
+### [groq] Single-entity: overdue invoices (single-entity RAG + Groq answer)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "show me overdue invoices" }
+
+###
+
+### [groq] Multi-entity: orders + invoices (multi-entity RAG + Groq answer)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "customers with open sales orders and unpaid invoices" }
+
+###
+
+### [groq] suggestCustomer: Groq generates suggested company name
+POST {{baseUrl}}/search/suggestCustomer
+Content-Type: application/json
+
+{ "query": "create a French pharmaceutical company" }
+
+###
+
+### [groq] Analytical: top customers by spend (SQL path, Groq answer)
+POST {{baseUrl}}/search/searchAI
+Content-Type: application/json
+
+{ "query": "top 5 customers by total purchase amount" }

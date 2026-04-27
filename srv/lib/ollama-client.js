@@ -1,5 +1,10 @@
 'use strict';
 
+// FULLY DEPRECATED - replaced by:
+// LLM: groq-client.js
+// Embeddings: embeddings.js (HuggingFace)
+// Ollama is no longer required
+
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 
 // Only send the fields that matter for answering questions — keeps the prompt small
